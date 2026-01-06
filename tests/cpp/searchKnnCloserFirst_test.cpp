@@ -20,7 +20,7 @@ void test() {
     idx_t nq = 10;
     size_t k = 10;
 
-    std::vector<float> data(n * d);
+    float* data = new float[n * d];
     std::vector<float> query(nq * d);
 
     std::mt19937 rng;
@@ -36,11 +36,11 @@ void test() {
 
     hnswlib::L2Space space(d);
     hnswlib::AlgorithmInterface<float>* alg_brute  = new hnswlib::BruteforceSearch<float>(&space, 2 * n);
-    hnswlib::AlgorithmInterface<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, 2 * n);
+    hnswlib::AlgorithmInterface<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, 2 * n, data);
 
     for (size_t i = 0; i < n; ++i) {
-        alg_brute->addPoint(data.data() + d * i, i);
-        alg_hnsw->addPoint(data.data() + d * i, i);
+        alg_brute->addPoint(data + d * i, i);
+        alg_hnsw->addPoint(i);
     }
 
     // test searchKnnCloserFirst of BruteforceSearch
@@ -69,6 +69,8 @@ void test() {
 
     delete alg_brute;
     delete alg_hnsw;
+
+    delete [] data;
 }
 
 }  // namespace

@@ -70,20 +70,20 @@ int main() {
 
     // Initing index
     hnswlib::L2Space space(dim);
-    hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, max_elements, M, ef_construction);
+    float* data = new float[dim * max_elements];
+    hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, max_elements, data, M, ef_construction);
 
     // Generate random data
     std::mt19937 rng;
     rng.seed(47);
     std::uniform_real_distribution<> distrib_real;
-    float* data = new float[dim * max_elements];
     for (int i = 0; i < dim * max_elements; i++) {
         data[i] = distrib_real(rng);
     }
 
     // Add data to index
     ParallelFor(0, max_elements, num_threads, [&](size_t row, size_t threadId) {
-        alg_hnsw->addPoint((void*)(data + dim * row), row);
+        alg_hnsw->addPoint(row);
     });
 
     // Query the elements for themselves and measure recall

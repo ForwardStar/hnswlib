@@ -213,13 +213,17 @@ int main(int argc, char **argv) {
     }
 
     hnswlib::L2Space l2space(d);
-    hnswlib::HierarchicalNSW<float> appr_alg(&l2space, N + 1, M, efConstruction);
+    std::vector<float> dummy_batch_vec = load_batch<float>(path + "batch_dummy_00.bin", N * d);
+    float* dummy_batch = new float[dummy_batch_vec.size()];
+    for (int i = 0; i < dummy_batch_vec.size(); i++) {
+        dummy_batch[i] = dummy_batch_vec[i];
+    }
+    hnswlib::HierarchicalNSW<float> appr_alg(&l2space, N + 1, dummy_batch, M, efConstruction);
 
-    std::vector<float> dummy_batch = load_batch<float>(path + "batch_dummy_00.bin", N * d);
 
     // Adding enterpoint:
 
-    appr_alg.addPoint((void *)dummy_batch.data(), (size_t)0);
+    appr_alg.addPoint((size_t)0);
 
     StopW stopw = StopW();
 
@@ -227,12 +231,12 @@ int main(int argc, char **argv) {
         std::cout << "Update iteration 0\n";
 
         ParallelFor(1, N, num_threads, [&](size_t i, size_t threadId) {
-            appr_alg.addPoint((void *)(dummy_batch.data() + i * d), i);
+            appr_alg.addPoint(i);
         });
         appr_alg.checkIntegrity();
 
         ParallelFor(1, N, num_threads, [&](size_t i, size_t threadId) {
-            appr_alg.addPoint((void *)(dummy_batch.data() + i * d), i);
+            appr_alg.addPoint(i);
         });
         appr_alg.checkIntegrity();
 
@@ -243,7 +247,7 @@ int main(int argc, char **argv) {
             std::vector<float> dummy_batchb = load_batch<float>(path + cpath, N * d);
 
             ParallelFor(0, N, num_threads, [&](size_t i, size_t threadId) {
-                appr_alg.addPoint((void *)(dummy_batch.data() + i * d), i);
+                appr_alg.addPoint(i);
             });
             appr_alg.checkIntegrity();
         }
@@ -254,7 +258,7 @@ int main(int argc, char **argv) {
 
     stopw.reset();
     ParallelFor(0, N, num_threads, [&](size_t i, size_t threadId) {
-                    appr_alg.addPoint((void *)(final_batch.data() + i * d), i);
+                    appr_alg.addPoint(i);
                 });
     std::cout << "Finished. Time taken:" << stopw.getElapsedTimeMicro()*1e-6 << " s\n";
     std::cout << "Running tests\n";
@@ -273,6 +277,8 @@ int main(int argc, char **argv) {
         std::cout << "Test iteration " << i << "\n";
         test_vs_recall(queries_batch, N_queries, appr_alg, d, answers, K);
     }
+
+    delete [] dummy_batch;
 
     return 0;
 }

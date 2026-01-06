@@ -35,7 +35,7 @@ void test_some_filtering(hnswlib::BaseFilterFunctor& filter_func, size_t div_num
     idx_t nq = 10;
     size_t k = 10;
 
-    std::vector<float> data(n * d);
+    float* data = new float[n * d];
     std::vector<float> query(nq * d);
 
     std::mt19937 rng;
@@ -51,12 +51,12 @@ void test_some_filtering(hnswlib::BaseFilterFunctor& filter_func, size_t div_num
 
     hnswlib::L2Space space(d);
     hnswlib::AlgorithmInterface<float>* alg_brute  = new hnswlib::BruteforceSearch<float>(&space, 2 * n);
-    hnswlib::AlgorithmInterface<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, 2 * n);
+    hnswlib::AlgorithmInterface<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, 2 * n, data);
 
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n - label_id_start; ++i) {
         // `label_id_start` is used to ensure that the returned IDs are labels and not internal IDs
-        alg_brute->addPoint(data.data() + d * i, label_id_start + i);
-        alg_hnsw->addPoint(data.data() + d * i, label_id_start + i);
+        alg_brute->addPoint(data + d * (label_id_start + i), label_id_start + i);
+        alg_hnsw->addPoint(label_id_start + i);
     }
 
     // test searchKnnCloserFirst of BruteforceSearch with filtering
@@ -89,6 +89,8 @@ void test_some_filtering(hnswlib::BaseFilterFunctor& filter_func, size_t div_num
 
     delete alg_brute;
     delete alg_hnsw;
+
+    delete [] data;
 }
 
 void test_none_filtering(hnswlib::BaseFilterFunctor& filter_func, size_t label_id_start) {
@@ -97,7 +99,7 @@ void test_none_filtering(hnswlib::BaseFilterFunctor& filter_func, size_t label_i
     idx_t nq = 10;
     size_t k = 10;
 
-    std::vector<float> data(n * d);
+    float* data = new float[n * d];
     std::vector<float> query(nq * d);
 
     std::mt19937 rng;
@@ -113,12 +115,12 @@ void test_none_filtering(hnswlib::BaseFilterFunctor& filter_func, size_t label_i
 
     hnswlib::L2Space space(d);
     hnswlib::AlgorithmInterface<float>* alg_brute  = new hnswlib::BruteforceSearch<float>(&space, 2 * n);
-    hnswlib::AlgorithmInterface<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, 2 * n);
+    hnswlib::AlgorithmInterface<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, 2 * n, data);
 
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n - label_id_start; ++i) {
         // `label_id_start` is used to ensure that the returned IDs are labels and not internal IDs
-        alg_brute->addPoint(data.data() + d * i, label_id_start + i);
-        alg_hnsw->addPoint(data.data() + d * i, label_id_start + i);
+        alg_brute->addPoint(data + d * (label_id_start + i), label_id_start + i);
+        alg_hnsw->addPoint(label_id_start + i);
     }
 
     // test searchKnnCloserFirst of BruteforceSearch with filtering

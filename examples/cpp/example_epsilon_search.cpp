@@ -17,15 +17,15 @@ int main() {
 
     // Initing index
     hnswlib::L2Space space(dim);
-    hnswlib::HierarchicalNSW<dist_t>* alg_hnsw = new hnswlib::HierarchicalNSW<dist_t>(&space, max_elements, M, ef_construction);
+    size_t data_point_size = space.get_data_size();
+    char* data = new char[data_point_size * max_elements];
+    hnswlib::HierarchicalNSW<dist_t>* alg_hnsw = new hnswlib::HierarchicalNSW<dist_t>(&space, max_elements, data, M, ef_construction);
 
     // Generate random data
     std::mt19937 rng;
     rng.seed(47);
     std::uniform_real_distribution<> distrib_real;
 
-    size_t data_point_size = space.get_data_size();
-    char* data = new char[data_point_size * max_elements];
     for (int i = 0; i < max_elements; i++) {
         char* point_data = data + i * data_point_size;
         for (int j = 0; j < dim; j++) {
@@ -38,8 +38,7 @@ int main() {
     // Add data to index
     for (int i = 0; i < max_elements; i++) {
         hnswlib::labeltype label = i;
-        char* point_data = data + i * data_point_size;
-        alg_hnsw->addPoint(point_data, label);
+        alg_hnsw->addPoint(label);
     }
 
     // Query random vectors

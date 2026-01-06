@@ -20,8 +20,10 @@ int main() {
 
     // Initing index
     hnswlib::MultiVectorL2Space<docidtype> space(dim);
+    size_t data_point_size = space.get_data_size();
+    char* data = new char[data_point_size * max_elements];
     hnswlib::BruteforceSearch<dist_t>* alg_brute = new hnswlib::BruteforceSearch<dist_t>(&space, max_elements);
-    hnswlib::HierarchicalNSW<dist_t>* alg_hnsw = new hnswlib::HierarchicalNSW<dist_t>(&space, max_elements, M, ef_construction);
+    hnswlib::HierarchicalNSW<dist_t>* alg_hnsw = new hnswlib::HierarchicalNSW<dist_t>(&space, max_elements, data, M, ef_construction);
 
     // Generate random data
     std::mt19937 rng;
@@ -29,8 +31,6 @@ int main() {
     std::uniform_real_distribution<> distrib_real;
     std::uniform_int_distribution<docidtype> distrib_docid(min_doc_id, max_doc_id);
 
-    size_t data_point_size = space.get_data_size();
-    char* data = new char[data_point_size * max_elements];
     for (int i = 0; i < max_elements; i++) {
         // set vector value
         char* point_data = data + i * data_point_size;
@@ -49,7 +49,7 @@ int main() {
     for (int i = 0; i < max_elements; i++) {
         hnswlib::labeltype label = i;
         char* point_data = data + i * data_point_size;
-        alg_hnsw->addPoint(point_data, label);
+        alg_hnsw->addPoint(label);
         alg_brute->addPoint(point_data, label);
         label_docid_lookup[label] = space.get_doc_id(point_data);
     }

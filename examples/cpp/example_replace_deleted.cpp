@@ -11,20 +11,20 @@ int main() {
     // Initing index with allow_replace_deleted=true
     int seed = 100; 
     hnswlib::L2Space space(dim);
-    hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, max_elements, M, ef_construction, seed, true);
+    float* data = new float[dim * max_elements];
+    hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, max_elements, data, M, ef_construction, seed, true);
 
     // Generate random data
     std::mt19937 rng;
     rng.seed(47);
     std::uniform_real_distribution<> distrib_real;
-    float* data = new float[dim * max_elements];
     for (int i = 0; i < dim * max_elements; i++) {
         data[i] = distrib_real(rng);
     }
 
     // Add data to index
     for (int i = 0; i < max_elements; i++) {
-        alg_hnsw->addPoint(data + i * dim, i);
+        alg_hnsw->addPoint(i);
     }
 
     // Mark first half of elements as deleted
@@ -44,7 +44,7 @@ int main() {
     // but we can replace the deleted ones by using replace_deleted=true
     for (int i = 0; i < num_deleted; i++) {
         hnswlib::labeltype label = max_elements + i;
-        alg_hnsw->addPoint(add_data + i * dim, label, true);
+        alg_hnsw->addPoint(label, true);
     }
 
     delete[] data;

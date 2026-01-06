@@ -19,15 +19,15 @@ int main() {
 
     // Initing index
     hnswlib::L2Space space(dim);
+    float* data = new float[dim * max_elements];
     hnswlib::BruteforceSearch<dist_t>* alg_brute = new hnswlib::BruteforceSearch<dist_t>(&space, max_elements);
-    hnswlib::HierarchicalNSW<dist_t>* alg_hnsw = new hnswlib::HierarchicalNSW<dist_t>(&space, max_elements, M, ef_construction);
+    hnswlib::HierarchicalNSW<dist_t>* alg_hnsw = new hnswlib::HierarchicalNSW<dist_t>(&space, max_elements, data, M, ef_construction);
 
     // Generate random data
     std::mt19937 rng;
     rng.seed(47);
     std::uniform_real_distribution<> distrib_real;
 
-    float* data = new float[dim * max_elements];
     for (int i = 0; i < dim * max_elements; i++) {
         data[i] = distrib_real(rng);
     }
@@ -37,7 +37,7 @@ int main() {
     for (int i = 0; i < max_elements; i++) {
         hnswlib::labeltype label = i;
         float* point_data = data + i * dim;
-        alg_hnsw->addPoint(point_data, label);
+        alg_hnsw->addPoint(label);
         alg_brute->addPoint(point_data, label);
     }
     std::cout << "Index is ready\n";

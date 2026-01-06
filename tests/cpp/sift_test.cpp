@@ -226,16 +226,16 @@ void sift_test() {
 
      cout << virtualMemUsedByMe/1000/1000 << "\n";*/
     //HierarchicalNSW<float> appr_alg(&l2space, vecsize, 6, 40);
-    HierarchicalNSW<float> appr_alg(&l2space, vecsize, 16, 200);
+    HierarchicalNSW<float> appr_alg(&l2space, vecsize, mass, 16, 200);
 
     cout << "Building index\n";
     StopW stopwb = StopW();
     for (int i = 0; i < 1; i++) {
-        appr_alg.addPoint((void *) (mass + vecdim * i), (size_t) i);
+        appr_alg.addPoint((size_t) i);
     }
 #pragma omp parallel for
     for (int i = 1; i < vecsize; i++) {
-        appr_alg.addPoint((void *) (mass + vecdim * i), (size_t) i);
+        appr_alg.addPoint((size_t) i);
     }
     /*GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
     virtualMemUsedByMe = pmc.WorkingSetSize;

@@ -72,13 +72,12 @@ int main() {
     hnswlib::L2Space space(d);
 
     // generate batch1 and batch2 data
-    float* batch1 = new float[d * max_elements];
+    float* batch = new float[d * max_elements * 2];
     for (int i = 0; i < d * max_elements; i++) {
-        batch1[i] = distrib_real(rng);
+        batch[i] = distrib_real(rng);
     }
-    float* batch2 = new float[d * num_elements];
     for (int i = 0; i < d * num_elements; i++) {
-        batch2[i] = distrib_real(rng);
+        batch[i + d * num_elements] = distrib_real(rng);
     }
 
     // generate random labels to delete them from index
@@ -90,11 +89,11 @@ int main() {
 
     int iter = 0;
     while (iter < 200) {
-        hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, max_elements, 16, 200, 123, true);
+        hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, max_elements, batch, 16, 200, 123, true);
 
         // add batch1 data
         ParallelFor(0, max_elements, num_threads, [&](size_t row, size_t threadId) {
-            alg_hnsw->addPoint((void*)(batch1 + d * row), row);
+            alg_hnsw->addPoint(row);
         });
 
         // delete half random elements of batch1 data
@@ -105,7 +104,7 @@ int main() {
         // replace deleted elements with batch2 data
         ParallelFor(0, num_elements, num_threads, [&](size_t row, size_t threadId) {
             int label = rand_labels[row] + max_elements;
-            alg_hnsw->addPoint((void*)(batch2 + d * row), label, true);
+            alg_hnsw->addPoint(label, true);
         });
 
         iter += 1;
@@ -115,7 +114,6 @@ int main() {
     
     std::cout << "Finish" << std::endl;
 
-    delete[] batch1;
-    delete[] batch2;
+    delete[] batch;
     return 0;
 }

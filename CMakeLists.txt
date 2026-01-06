@@ -1,105 +1,126 @@
-cmake_minimum_required(VERSION 3.0...3.26)
+cmake_minimum_required(VERSION 3.15...3.26)
 
-project(hnswlib
-    LANGUAGES CXX)
+project(hnswlib LANGUAGES CXX)
 
 include(GNUInstallDirs)
 include(CheckCXXCompilerFlag)
 
+# --------------------------------------------------
+# Library (header-only)
+# --------------------------------------------------
 add_library(hnswlib INTERFACE)
 add_library(hnswlib::hnswlib ALIAS hnswlib)
 
 target_include_directories(hnswlib INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
+target_compile_features(hnswlib INTERFACE cxx_std_11)
+
+# --------------------------------------------------
 # Install
+# --------------------------------------------------
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hnswlib
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 
-install(TARGETS hnswlib
-    EXPORT hnswlibTargets)
+install(TARGETS hnswlib EXPORT hnswlibTargets)
 
 install(EXPORT hnswlibTargets
     FILE hnswlibConfig.cmake
     NAMESPACE hnswlib::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hnswlib)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hnswlib
+)
 
+# --------------------------------------------------
 # Examples and tests
+# --------------------------------------------------
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     option(HNSWLIB_EXAMPLES "Build examples and tests." ON)
 else()
     option(HNSWLIB_EXAMPLES "Build examples and tests." OFF)
 endif()
-if(HNSWLIB_EXAMPLES)
-    set(CMAKE_CXX_STANDARD 11)
 
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-      SET( CMAKE_CXX_FLAGS  "-Ofast -std=c++11 -DHAVE_CXX0X -openmp -fpic -ftree-vectorize" )
-      check_cxx_compiler_flag("-march=native" COMPILER_SUPPORT_NATIVE_FLAG)
-      if(COMPILER_SUPPORT_NATIVE_FLAG)
-        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native" )
-        message("set -march=native flag")
-      else()
-        check_cxx_compiler_flag("-mcpu=apple-m1" COMPILER_SUPPORT_M1_FLAG)
-        if(COMPILER_SUPPORT_M1_FLAG)
-          SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=apple-m1" )
-          message("set -mcpu=apple-m1 flag")
-        endif()
-      endif()
-    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-      SET( CMAKE_CXX_FLAGS  "-Ofast -lrt -std=c++11 -DHAVE_CXX0X -march=native -fpic -w -fopenmp -ftree-vectorize -ftree-vectorizer-verbose=0" )
-    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-      SET( CMAKE_CXX_FLAGS  "/O2 -DHAVE_CXX0X /W1 /openmp /EHsc" )
+if(HNSWLIB_EXAMPLES)
+
+    # Default build type (important!)
+    if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+        set(CMAKE_BUILD_TYPE Release CACHE STRING
+            "Choose the type of build." FORCE)
     endif()
 
-    # examples
-    add_executable(example_search examples/cpp/example_search.cpp)
-    target_link_libraries(example_search hnswlib)
+    # ----------------------------------------------
+    # Compiler-specific flags
+    # ----------------------------------------------
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 
-    add_executable(example_epsilon_search examples/cpp/example_epsilon_search.cpp)
-    target_link_libraries(example_epsilon_search hnswlib)
+        # Common warnings
+        add_compile_options(-Wall -Wextra)
 
-    add_executable(example_multivector_search examples/cpp/example_multivector_search.cpp)
-    target_link_libraries(example_multivector_search hnswlib)
+        # Release-only optimizations
+        add_compile_options(
+            $<$<CONFIG:Release>:-Ofast>
+            $<$<CONFIG:Release>:-ftree-vectorize>
+            $<$<CONFIG:Release>:-fopenmp>
+        )
 
-    add_executable(example_filter examples/cpp/example_filter.cpp)
-    target_link_libraries(example_filter hnswlib)
+        # Debug-friendly flags
+        add_compile_options(
+            $<$<CONFIG:Debug>:-O0>
+            $<$<CONFIG:Debug>:-g>
+            $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
+        )
 
-    add_executable(example_replace_deleted examples/cpp/example_replace_deleted.cpp)
-    target_link_libraries(example_replace_deleted hnswlib)
+        # Architecture tuning (Release only)
+        check_cxx_compiler_flag("-march=native" HAS_MARCH_NATIVE)
+        if(HAS_MARCH_NATIVE)
+            add_compile_options($<$<CONFIG:Release>:-march=native>)
+        endif()
 
-    add_executable(example_mt_search examples/cpp/example_mt_search.cpp)
-    target_link_libraries(example_mt_search hnswlib)
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
-    add_executable(example_mt_filter examples/cpp/example_mt_filter.cpp)
-    target_link_libraries(example_mt_filter hnswlib)
+        add_compile_options(
+            $<$<CONFIG:Release>:/O2>
+            $<$<CONFIG:Debug>:/Od>
+            $<$<CONFIG:Debug>:/Zi>
+        )
 
-    add_executable(example_mt_replace_deleted examples/cpp/example_mt_replace_deleted.cpp)
-    target_link_libraries(example_mt_replace_deleted hnswlib)
+        add_compile_options(/EHsc /openmp)
 
-    # tests
-    add_executable(multivector_search_test tests/cpp/multivector_search_test.cpp)
-    target_link_libraries(multivector_search_test hnswlib)
+    endif()
 
-    add_executable(epsilon_search_test tests/cpp/epsilon_search_test.cpp)
-    target_link_libraries(epsilon_search_test hnswlib)
+    # ----------------------------------------------
+    # Helper macro
+    # ----------------------------------------------
+    function(add_hnsw_example name)
+        add_executable(${name} ${ARGN})
+        target_link_libraries(${name} PRIVATE hnswlib)
+    endfunction()
 
-    add_executable(test_updates tests/cpp/updates_test.cpp)
-    target_link_libraries(test_updates hnswlib)
+    # ----------------------------------------------
+    # Examples
+    # ----------------------------------------------
+    add_hnsw_example(example_search examples/cpp/example_search.cpp)
+    add_hnsw_example(example_epsilon_search examples/cpp/example_epsilon_search.cpp)
+    add_hnsw_example(example_multivector_search examples/cpp/example_multivector_search.cpp)
+    add_hnsw_example(example_filter examples/cpp/example_filter.cpp)
+    add_hnsw_example(example_replace_deleted examples/cpp/example_replace_deleted.cpp)
+    add_hnsw_example(example_mt_search examples/cpp/example_mt_search.cpp)
+    add_hnsw_example(example_mt_filter examples/cpp/example_mt_filter.cpp)
+    add_hnsw_example(example_mt_replace_deleted examples/cpp/example_mt_replace_deleted.cpp)
 
-    add_executable(searchKnnCloserFirst_test tests/cpp/searchKnnCloserFirst_test.cpp)
-    target_link_libraries(searchKnnCloserFirst_test hnswlib)
+    # ----------------------------------------------
+    # Tests
+    # ----------------------------------------------
+    add_hnsw_example(multivector_search_test tests/cpp/multivector_search_test.cpp)
+    add_hnsw_example(epsilon_search_test tests/cpp/epsilon_search_test.cpp)
+    add_hnsw_example(test_updates tests/cpp/updates_test.cpp)
+    add_hnsw_example(searchKnnCloserFirst_test tests/cpp/searchKnnCloserFirst_test.cpp)
+    add_hnsw_example(searchKnnWithFilter_test tests/cpp/searchKnnWithFilter_test.cpp)
+    add_hnsw_example(multiThreadLoad_test tests/cpp/multiThreadLoad_test.cpp)
+    add_hnsw_example(multiThread_replace_test tests/cpp/multiThread_replace_test.cpp)
+    add_hnsw_example(getDataByLabel_test tests/cpp/getDataByLabel_test.cpp)
+    add_hnsw_example(main tests/cpp/main.cpp tests/cpp/sift_1b.cpp)
 
-    add_executable(searchKnnWithFilter_test tests/cpp/searchKnnWithFilter_test.cpp)
-    target_link_libraries(searchKnnWithFilter_test hnswlib)
-
-    add_executable(multiThreadLoad_test tests/cpp/multiThreadLoad_test.cpp)
-    target_link_libraries(multiThreadLoad_test hnswlib)
-
-    add_executable(multiThread_replace_test tests/cpp/multiThread_replace_test.cpp)
-    target_link_libraries(multiThread_replace_test hnswlib)
-
-    add_executable(main tests/cpp/main.cpp tests/cpp/sift_1b.cpp)
-    target_link_libraries(main hnswlib)
 endif()

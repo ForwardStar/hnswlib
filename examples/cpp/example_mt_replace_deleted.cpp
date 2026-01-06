@@ -71,20 +71,20 @@ int main() {
     // Initing index with allow_replace_deleted=true
     int seed = 100; 
     hnswlib::L2Space space(dim);
-    hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, max_elements, M, ef_construction, seed, true);
+    float* data = new float[dim * max_elements];
+    hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(&space, max_elements, data, M, ef_construction, seed, true);
 
     // Generate random data
     std::mt19937 rng;
     rng.seed(47);
     std::uniform_real_distribution<> distrib_real;
-    float* data = new float[dim * max_elements];
     for (int i = 0; i < dim * max_elements; i++) {
         data[i] = distrib_real(rng);
     }
 
     // Add data to index
     ParallelFor(0, max_elements, num_threads, [&](size_t row, size_t threadId) {
-        alg_hnsw->addPoint((void*)(data + dim * row), row);
+        alg_hnsw->addPoint(row);
     });
 
     // Mark first half of elements as deleted
@@ -104,7 +104,7 @@ int main() {
     // but we can replace the deleted ones by using replace_deleted=true
     ParallelFor(0, num_deleted, num_threads, [&](size_t row, size_t threadId) {
         hnswlib::labeltype label = max_elements + row;
-        alg_hnsw->addPoint((void*)(add_data + dim * row), label, true);
+        alg_hnsw->addPoint(label, true);
     });
 
     delete[] data;
