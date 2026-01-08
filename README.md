@@ -2,7 +2,9 @@
 
 Original Hnswlib repo: [https://github.com/nmslib/hnswlib](https://github.com/nmslib/hnswlib)
 
-Update of this version: the original Hnswlib will store materialized vectors in each ``hnswlib::HierarchicalNSW`` class. However, what if you want to construct multiple HNSW subgraphs over the same set of vectors? This will lead to substantial memory waste since the class will store each vector multiple times. In this version, we change the class to support referring vectors without materialized store.
+Update of this version: optimize the library for constructing multiple graphs over subsets of vectors.
+- The original Hnswlib will store materialized vectors in each ``hnswlib::HierarchicalNSW`` class. However, what if multiple HNSW graphs share the same set of vectors (and only involves subsets of them)? This will lead to substantial memory waste since the class will store each vector multiple times. In this version, we change the class to support referring vectors without materialized store.
+- The original Hnswlib will maintain 65536 mutex locks in each ``hnswlib::HierarchicalNSW`` class, which incurs substantial memory overhead when you are under single-threaded environments and need to construct multiple HNSW graphs. We change the lock number to 1. If you still want to support multi-threaded environments, revise ``static const tableint MAX_LABEL_OPERATION_LOCKS = 1;`` in ``hnswlib/hnswalg.h`` to the number of threads needed to support.
 
 Specifically, the original API is:
 ```cpp

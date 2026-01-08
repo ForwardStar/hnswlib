@@ -17,7 +17,7 @@ typedef unsigned int linklistsizeint;
 template<typename dist_t>
 class HierarchicalNSW : public AlgorithmInterface<dist_t> {
  public:
-    static const tableint MAX_LABEL_OPERATION_LOCKS = 65536;
+    static const tableint MAX_LABEL_OPERATION_LOCKS = 1;
     static const unsigned char DELETE_MARK = 0x01;
 
     size_t max_elements_{0};
