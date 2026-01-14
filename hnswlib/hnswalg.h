@@ -79,10 +79,12 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     HierarchicalNSW(
         SpaceInterface<dist_t> *s,
         const std::string &location,
+        const void* external_data,
         bool nmslib = false,
         size_t max_elements = 0,
         bool allow_replace_deleted = false)
-        : allow_replace_deleted_(allow_replace_deleted) {
+        : external_data_((const char*)external_data),
+          allow_replace_deleted_(allow_replace_deleted) {
         loadIndex(location, s, max_elements);
     }
 
