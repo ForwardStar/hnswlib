@@ -626,7 +626,6 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
         visited_list_pool_.reset(new VisitedListPool(1, new_max_elements));
 
         if (new_max_elements > element_levels_.size()) {
-            element_levels_.reserve(new_max_elements);
             while (element_levels_.size() < new_max_elements) {
                 element_levels_.emplace_back(0);
             }
@@ -635,7 +634,6 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
         // Reallocate base layer
         const size_t new_data_size = new_max_elements * size_data_per_element_;
         if (new_data_size > data_level0_memory_.size()) {
-            data_level0_memory_.reserve(new_data_size);
             data_level0_memory_.insert(
                 data_level0_memory_.end(),
                 new_data_size - data_level0_memory_.size(),
@@ -644,7 +642,6 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 
         // Reallocate all other layers
         if (new_max_elements > linkLists_.size()) {
-            linkLists_.reserve(new_max_elements);
             while (linkLists_.size() < new_max_elements) {
                 linkLists_.emplace_back();
             }
